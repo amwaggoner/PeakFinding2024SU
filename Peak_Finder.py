@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import scipy.signal as signal
 
 datadir = r'\Users\waggoner\Downloads'
-files = [io.open(r'%s\pmt_ch5_1200V_yukon_1_ALL.csv'%datadir)]
-lines = [None]*len(files)
+file = io.open(r'%s\pmt_ch5_1200V_yukon_1_ALL.csv'%datadir)
+lines = [None]*1
 
 minheight = None    #Default = None
 threshold = None    #Default = None
@@ -16,12 +16,20 @@ wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
 plateau_size = None #Default = None
 
-t = np.empty((1,0)).tolist()
-ch1 = np.empty((1,0)).tolist()
-ch2 = np.empty((1,0)).tolist()
-ch3 = np.empty((1,0)).tolist()
-ch4 = np.empty((1,0)).tolist()
-ch2_1 = np.empty((1,0)).tolist()
+def extract_data(inputfile): #Takes a csv file, inputfile, and returns a list of lists containing all channels within.
+    lines = inputfile.readlines()[17:]
+    output = []
+    
+    for i in range(len(lines)):
+        output.append([])
+    
+    for line in lines:
+        cols = [j for j in line.split(',')]
+        for i in range(len(cols)):
+            output[i].append(float(cols[i]))
+    return output
+
+
 
 def integration(a):
     out = np.empty((1,0)).tolist()
@@ -29,35 +37,24 @@ def integration(a):
         if i == 0:
             out[i] = 0
         else: 
-            out.append(0.5*(t[0][i]-t[0][i-1])*(a[i-1]*a[i]))
+            out.append(0.5*(time_channel[i]-time_channel[i-1])*(a[i-1]*a[i]))
     return out
 
 
 ##Extract Data
-for i in range(0,len(files)):
-    lines[i] = files[i].readlines()[17:]
-    
-    for line in lines[i]:
-        cols = [j for j in line.split(',')]
-        t[i].append(float(cols[0]))    #timestamp
-        ch1[i].append(float(cols[1]))  #scope ch 1
-        ch2[i].append(float(cols[2]))  #pmt data
-        #ch3[i].append(float(cols[3]))  #Toroid
-        if len(cols)>4:
-            ch4[i].append(float(cols[4]))
-        else:
-            ch4[i].append(0)
+channels = extract_data(file)
 
 ##Define Plots
 fig, ax = plt.subplots(1,2,figsize=(9,5))
 
-process_channel = ch1[0]
+time_channel = channels[0]
+process_channel = channels[1]
 
 ##Define Raw Data Subplot
 fig.suptitle("PMT trace")
 fig.supxlabel('time (s)')
 fig.supylabel('signal (V)')
-ax[0].plot(t[0],process_channel,label='PMT Data')
+ax[0].plot(time_channel,process_channel,label='PMT Data')
 #ax[0].plot(t[0],ch2[0],label='PMT Data')
 #ax[0].plot(t[0],np.divide(ch3[0],10),label='Toroid Data')
 ax[0].set_title('Raw')
@@ -65,6 +62,7 @@ ax[0].legend()
 
 raw_max = 0
 for i in range(len(process_channel)):
+    print(process_channel[i])
     if abs(process_channel[i]) > raw_max:
         raw_max = abs(process_channel[i])
 
@@ -95,14 +93,14 @@ for i in range(1):
     (peak_indices, *a) = signal.find_peaks(process_channel, minheight, threshold, distance, prominence + ((i)*0.001), width, wlen, rel_height, plateau_size)
     
     for j in range(len(peak_indices)):
-        peak_x.append(t[0][peak_indices[j]])
+        peak_x.append(time_channel[peak_indices[j]])
         peak_y.append(process_channel[peak_indices[j]])
     
     ax[i+1].scatter(peak_x,peak_y,color = "orange")
 
 ##Define Processed Plot
 #ax[1].plot(t[0],ch1[0],label='800V')
-ax[1].plot(t[0],process_channel,label='PMT Data')
+ax[1].plot(time_channel,process_channel,label='PMT Data')
 #ax[2].plot(t[0],process_channel,label='PMT Data')
 #ax[3].plot(t[0],process_channel,label='PMT Data')
 #ax[1].plot(t[0],np.divide(ch3[0],10),label='Toroid Data')
