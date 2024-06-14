@@ -2,10 +2,13 @@ import io
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
+import csv
+import datetime
 
 datadir = r'\Users\waggoner\Downloads'
 file = io.open(r'%s\pmt_ch5_1200V_yukon_1_ALL.csv'%datadir)
 lines = [None]*1
+outputdir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\outputdata.csv'
 
 minheight = None    #Default = None
 threshold = None    #Default = None
@@ -16,8 +19,9 @@ wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
 plateau_size = None #Default = None
 
-def extract_data(inputfile): #Takes a csv file, inputfile, and returns a list of lists containing all channels within.
-    lines = inputfile.readlines()[17:]
+def extract_data(inputfile,cutlines): #Takes a csv file, inputfile, and an int representing the number of lines to cut, 
+                                      #and returns a list of lists containing all channels within.
+    lines = inputfile.readlines()[cutlines:]
     output = []
     
     for i in range(len(lines)):
@@ -40,9 +44,20 @@ def integration(a):
             out.append(0.5*(time_channel[i]-time_channel[i-1])*(a[i-1]*a[i]))
     return out
 
+def compile_peaks(a): #Takes a list of peak heights and returns a float that represents the loss
+    output = 0
+    for i in range(len(a)):
+        output += a[i]
+    return float(output)
+    
+def store_data_point(a,b): #Takes a file path and a list of data points, and appends the data points to the CSV file
+    with open(a, 'a',newline='') as outputfile:
+        csvwriter = csv.writer(outputfile)
+        csvwriter.writerow(b)
+        outputfile.close()
 
 ##Extract Data
-channels = extract_data(file)
+channels = extract_data(file,17)
 
 ##Define Plots
 fig, ax = plt.subplots(1,2,figsize=(9,5))
@@ -62,7 +77,6 @@ ax[0].legend()
 
 raw_max = 0
 for i in range(len(process_channel)):
-    print(process_channel[i])
     if abs(process_channel[i]) > raw_max:
         raw_max = abs(process_channel[i])
 
@@ -97,6 +111,13 @@ for i in range(1):
         peak_y.append(process_channel[peak_indices[j]])
     
     ax[i+1].scatter(peak_x,peak_y,color = "orange")
+
+store_data_point(outputdir, [datetime.datetime.now(), compile_peaks(peak_y)])
+
+
+
+
+
 
 ##Define Processed Plot
 #ax[1].plot(t[0],ch1[0],label='800V')
