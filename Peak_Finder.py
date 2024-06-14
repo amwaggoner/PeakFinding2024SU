@@ -40,6 +40,11 @@ def integration(a):
             out.append(0.5*(time_channel[i]-time_channel[i-1])*(a[i-1]*a[i]))
     return out
 
+def compile_peaks(a): #Takes a list of peak heights and returns a float that represents the loss
+    output = 0
+    for i in range(len(a)):
+        output += a[i]
+    return float(output)
 
 ##Extract Data
 channels = extract_data(file)
@@ -62,7 +67,6 @@ ax[0].legend()
 
 raw_max = 0
 for i in range(len(process_channel)):
-    print(process_channel[i])
     if abs(process_channel[i]) > raw_max:
         raw_max = abs(process_channel[i])
 
@@ -97,6 +101,13 @@ for i in range(1):
         peak_y.append(process_channel[peak_indices[j]])
     
     ax[i+1].scatter(peak_x,peak_y,color = "orange")
+
+print(compile_peaks(peak_y))
+
+
+
+
+
 
 ##Define Processed Plot
 #ax[1].plot(t[0],ch1[0],label='800V')
