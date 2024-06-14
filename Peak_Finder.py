@@ -2,15 +2,23 @@ import io
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
+import csv
 
 datadir = r'\Users\waggoner\Downloads'
 file = io.open(r'%s\pmt_ch5_1200V_yukon_1_ALL.csv'%datadir)
 lines = [None]*1
+peakexamplepath =  r'C:\Users\waggoner\Documents\GitHub\PeakFinding2024SU\peak_example.csv'
+
+items = io.open(peakexamplepath).readlines()[0].split(',')
+peak_array = []
+
+for i in items:
+    peak_array.append(float(i))
 
 minheight = None    #Default = None
 threshold = None    #Default = None
 distance = None     #Default = None
-prominence = 0.016   #Default = None
+prominence = 0.4    #Default = None
 width = None        #Default = None
 wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
@@ -47,8 +55,10 @@ channels = extract_data(file)
 ##Define Plots
 fig, ax = plt.subplots(1,2,figsize=(9,5))
 
-time_channel = channels[0]
+time_channel = range(len(channels[1])) #channels[0]
 process_channel = channels[1]
+
+
 
 ##Define Raw Data Subplot
 fig.suptitle("PMT trace")
@@ -62,7 +72,6 @@ ax[0].legend()
 
 raw_max = 0
 for i in range(len(process_channel)):
-    print(process_channel[i])
     if abs(process_channel[i]) > raw_max:
         raw_max = abs(process_channel[i])
 
@@ -85,6 +94,8 @@ for i in range(len(process_channel)):
 
 
 
+process_channel = signal.convolve(process_channel, peak_array, 'same')
+
 peak_x = []
 peak_y = []
     
@@ -97,6 +108,8 @@ for i in range(1):
         peak_y.append(process_channel[peak_indices[j]])
     
     ax[i+1].scatter(peak_x,peak_y,color = "orange")
+
+
 
 ##Define Processed Plot
 #ax[1].plot(t[0],ch1[0],label='800V')
