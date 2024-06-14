@@ -2,10 +2,13 @@ import io
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
+import csv
+import datetime
 
 datadir = r'\Users\waggoner\Downloads'
 file = io.open(r'%s\pmt_ch5_1200V_yukon_1_ALL.csv'%datadir)
 lines = [None]*1
+outputdir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\outputdata.csv'
 
 minheight = None    #Default = None
 threshold = None    #Default = None
@@ -16,8 +19,9 @@ wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
 plateau_size = None #Default = None
 
-def extract_data(inputfile): #Takes a csv file, inputfile, and returns a list of lists containing all channels within.
-    lines = inputfile.readlines()[17:]
+def extract_data(inputfile,cutlines): #Takes a csv file, inputfile, and an int representing the number of lines to cut, 
+                                      #and returns a list of lists containing all channels within.
+    lines = inputfile.readlines()[cutlines:]
     output = []
     
     for i in range(len(lines)):
@@ -45,9 +49,15 @@ def compile_peaks(a): #Takes a list of peak heights and returns a float that rep
     for i in range(len(a)):
         output += a[i]
     return float(output)
+    
+def store_data_point(a,b): #Takes a file path and a list of data points, and appends the data points to the CSV file
+    with open(a, 'a',newline='') as outputfile:
+        csvwriter = csv.writer(outputfile)
+        csvwriter.writerow(b)
+        outputfile.close()
 
 ##Extract Data
-channels = extract_data(file)
+channels = extract_data(file,17)
 
 ##Define Plots
 fig, ax = plt.subplots(1,2,figsize=(9,5))
@@ -102,7 +112,7 @@ for i in range(1):
     
     ax[i+1].scatter(peak_x,peak_y,color = "orange")
 
-print(compile_peaks(peak_y))
+store_data_point(outputdir, [datetime.datetime.now(), compile_peaks(peak_y)])
 
 
 
