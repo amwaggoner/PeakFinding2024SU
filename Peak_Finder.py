@@ -9,6 +9,7 @@ datadir = r'\Users\waggoner\Downloads'
 file = io.open(r'%s\pmt_ch5_1200V_yukon_1_ALL.csv'%datadir)
 lines = [None]*1
 outputdir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\outputdata.csv'
+exampledir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\peak_example.csv'
 
 minheight = None    #Default = None
 threshold = None    #Default = None
@@ -18,14 +19,15 @@ width = None        #Default = None
 wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
 plateau_size = None #Default = None
-plot = False        #Does this need to be plotted? Default = False
+plot = True        #Does this need to be plotted? Default = False
 
 def run_script():
     ##Extract Data
     channels = extract_data(file,17)
 
     ##Define Plots
-    '''fig, ax = plt.subplots(1,2,figsize=(9,5))'''
+    if plot:
+        fig, ax = plt.subplots(1,2,figsize=(9,5))
 
     time_channel = channels[0]
     process_channel = channels[1]
@@ -110,17 +112,20 @@ def peak_finder(process_channel,time_channel, ax = None):
 
 
 def process_data(process_channel,time_channel):
+    
     raw_max = 0
     for i in range(len(process_channel)):
         if abs(process_channel[i]) > raw_max:
             raw_max = abs(process_channel[i])
 
-    ##Process Data
+    ##Process Data    
+    
     base = process_channel[0]
     for i in range(len(process_channel)-1):
         process_channel[i] -= base
 
     process_channel = integration(process_channel,time_channel)
+    peak_array = integration(process_channel, time_channel)
 
     processed_max = 0
     for i in range(len(process_channel)):
@@ -131,6 +136,7 @@ def process_data(process_channel,time_channel):
 
     for i in range(len(process_channel)):
         process_channel[i] *= scale_factor
+
 
     return process_channel
 run_script()
