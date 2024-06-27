@@ -12,9 +12,9 @@ import asyncio
 import logging
 import argparse
 import os
+import time
 
-datadir = r'\Users\waggoner\Downloads'
-hardcodefile = r'%s\6-21-2024_1200V_Ev17_4_ALL.csv'%datadir
+#hardcodefile = r'%s\6-21-2024_1200V_Ev17_4_ALL.csv'%datadir
 lines = [None]*1
 outputdir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\outputdata.csv'
 exampledir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\peak_example.csv'
@@ -27,7 +27,7 @@ width = None        #Default = None
 wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
 plateau_size = None #Default = None
-plot = True        #Does this need to be plotted? Default = False
+plot = False        #Does this need to be plotted? Default = False
 
 FORMAT = '%(asctime)-15s [%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -50,9 +50,24 @@ log.info('script started')
     async for ii in acsys.sync.get_events(con, ['e,53']):
         log.info('%s',str(ii))'''
     
-def main():
+async def main():
+    starttime = time.time()
+    datadir = r'\Users\waggoner\Desktop\Data_Folder'
+    files = []
+    tasks = []
+    for filename in os.listdir(datadir):
+        files.append(datadir + r'\%s'%filename)
+    
+    
+    
+    for i in files:
+        tasks.append(asyncio.create_task(run_script(i)))
+    
+    await asyncio.gather(*tasks)
 
-    args_dict = {'readfile':'', 'event':'', 'dev_list':[],'role':''}
+    print('Entire script took ' + str(time.time() - starttime) + ' seconds to process ' + str(len(files)) + ' files')
+    
+    '''args_dict = {'readfile':'', 'event':'', 'dev_list':[],'role':''}
     parse_args(args_dict)
     
     sc = scanner()
@@ -73,7 +88,12 @@ def main():
     ax[0].legend()
     plt.show()
     
-    print(nominals)
+    print(nominals)'''
+    
+async def print_time(time):
+    await asyncio.sleep(time)
+    print(time)
+    
     
 def dev_list():
     output = []
@@ -102,7 +122,9 @@ def parse_args(args_dict):
     args_dict['dev_list'] = options.devlist
     args_dict['role']     = options.role
     
-def run_script(inputfile):
+async def run_script(inputfile):
+    scriptstarttime = time.time()
+
     ##Extract Data
     file = io.open(inputfile)
     channels = extract_data(file,17)
@@ -139,9 +161,12 @@ def run_script(inputfile):
         ax[1].legend()
 
         plt.show()
+    
+    print('Processing one file took ' + str(time.time() - scriptstarttime) + ' seconds')
 
 def extract_data(inputfile,cutlines): #Takes a csv file, inputfile, and an int representing the number of lines to cut, 
                                       #and returns a list of lists containing all channels within.
+    dataextractionstarttime = time.time()
     lines = inputfile.readlines()[cutlines:]
     output = []
     
@@ -152,32 +177,43 @@ def extract_data(inputfile,cutlines): #Takes a csv file, inputfile, and an int r
         cols = [j for j in line.split(',')]
         for i in range(len(cols)):
             output[i].append(float(cols[i]))
+    
+    print('Extracting the data took ' + str(time.time() - dataextractionstarttime) + ' seconds')
     return output
 
 
 
 def integration(a, time_channel):
+
+    integrationstarttime = time.time()
     out = np.empty((1,0)).tolist()
     for i in range(len(a)):
         if i == 0:
             out[i] = 0.0
         else: 
             out.append(float(0.5*(time_channel[i]-time_channel[i-1])*(a[i-1]*a[i])))
+    print('Applying the 2 term convolution took ' + str(time.time() - integrationstarttime) + ' seconds')
     return out
 
 def compile_peaks(a): #Takes a list of peak heights and returns a float that represents the loss
+    peakcompilationstarttime = time.time()
     output = 0
     for i in range(len(a)):
         output += a[i]
+    
+    print('Compiling the peaks took ' + str(time.time() - peakcompilationstarttime) + ' seconds')
     return float(output)
     
 def store_data_point(a,b): #Takes a file path and a list of data points, and appends the data points to the CSV file
+    datastoragestarttime = time.time()
     with open(a, 'a',newline='') as outputfile:
         csvwriter = csv.writer(outputfile)
         csvwriter.writerow(b)
         outputfile.close()
+    print('Storing the data took ' + str(time.time() - datastoragestarttime) + ' seconds')
 
 def peak_finder(process_channel,time_channel, ax = None):
+    peakfindingstarttime = time.time()
     peak_x = []
     peak_y = []
     
@@ -193,9 +229,11 @@ def peak_finder(process_channel,time_channel, ax = None):
             ax[i+1].scatter(peak_x,peak_y,color = "orange")
 
     store_data_point(outputdir, [datetime.datetime.now(), compile_peaks(peak_y)])
+    print('Finding the peaks took ' + str(time.time() - peakfindingstarttime) + ' seconds')
 
 
 def process_data(process_channel,time_channel):
+    dataprocessingstarttime = time.time()
     
     raw_max = 0
     for i in range(len(process_channel)):
@@ -219,6 +257,7 @@ def process_data(process_channel,time_channel):
     for i in range(len(process_channel)):
         process_channel[i] *= scale_factor
 
+    print('Finding the peaks took ' + str(time.time() - dataprocessingstarttime) + ' seconds')
     return process_channel
     
 def make_ramplist(sc,device_list):
@@ -288,4 +327,4 @@ log.info('running client')
 '''acsys.run_client(my_app)'''
 ##run_script(hardcodefile)
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
