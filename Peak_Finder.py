@@ -13,7 +13,15 @@ import logging
 import argparse
 import os
 import time
+'''
 
+Notes for the user:
+Files should be formatted as follows, with square brackets representing fields to be filled on data export
+
+[Date in XX-XX-XXXX format]_[Voltage in XXXXV Format]_[Signal label in XX format]_DevList_[Underscore separated list of applicable device labels, such as filters or boards]_EndDevList_[Sample number in XXX format].csv
+
+
+'''
 #hardcodefile = r'%s\6-21-2024_1200V_Ev17_4_ALL.csv'%datadir
 lines = [None]*1
 outputdir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\outputdata.csv'
@@ -136,6 +144,7 @@ async def run_script(inputfile):
     time_channel = channels[0]
     process_channel = channels[1]
 
+    print(len(time_channel))
 
     ##Define Raw Data Subplot
     if plot:
@@ -148,11 +157,12 @@ async def run_script(inputfile):
 
     processed_channel = process_data(process_channel,time_channel)
 
-
+    
+    
     if plot:
-        peak_finder(processed_channel, time_channel, ax)
+        peak_finder(processed_channel, time_channel, inputfile, ax)
     else:
-        peak_finder(processed_channel, time_channel)
+        peak_finder(processed_channel, time_channel, inputfile)
 
     ##Define Processed Plot
     if plot:
@@ -212,7 +222,7 @@ def store_data_point(a,b): #Takes a file path and a list of data points, and app
         outputfile.close()
     print('Storing the data took ' + str(time.time() - datastoragestarttime) + ' seconds')
 
-def peak_finder(process_channel,time_channel, ax = None):
+def peak_finder(process_channel,time_channel, currentfile, ax = None):
     peakfindingstarttime = time.time()
     peak_x = []
     peak_y = []
@@ -228,8 +238,17 @@ def peak_finder(process_channel,time_channel, ax = None):
         if plot:
             ax[i+1].scatter(peak_x,peak_y,color = "orange")
 
-    store_data_point(outputdir, [datetime.datetime.now(), compile_peaks(peak_y)])
+    file_information = process_file_name(currentfile)
+
+    store_data_point(outputdir, [datetime.datetime.now(), compile_peaks(peak_y),currentfile] + file_information)
     print('Finding the peaks took ' + str(time.time() - peakfindingstarttime) + ' seconds')
+
+def process_file_name(filename):
+    filename = filename.split(r'/')[-1]
+    splitfilename = filename.split(r'_')
+    return splitfilename
+    #for i in range(len(splitfilename)):
+        #return
 
 
 def process_data(process_channel,time_channel):
@@ -251,7 +270,7 @@ def process_data(process_channel,time_channel):
     for i in range(len(process_channel)):
         if abs(process_channel[i]) > processed_max:
             processed_max = abs(process_channel[i])
-    scale_factor = raw_max / processed_max
+    scale_factor = 1 / processed_max
     if scale_factor == float('NaN'):
         print('There is an infinity in this data set')
     for i in range(len(process_channel)):
