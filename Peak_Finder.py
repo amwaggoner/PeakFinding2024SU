@@ -35,7 +35,7 @@ width = None        #Default = None
 wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
 plateau_size = None #Default = None
-plot = False        #Does this need to be plotted? Default = False
+plot = False         #Does this need to be plotted? Default = False
 
 FORMAT = '%(asctime)-15s [%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -142,31 +142,30 @@ async def run_script(inputfile):
         fig, ax = plt.subplots(1,2,figsize=(9,5))
 
     time_channel = channels[0]
-    process_channel = channels[1]
-
-    print(len(time_channel))
+    process_channels = channels[1:3]
 
     ##Define Raw Data Subplot
     if plot:
         fig.suptitle("PMT trace")
         fig.supxlabel('time (s)')
         fig.supylabel('signal (V)')
-        ax[0].plot(time_channel,process_channel,label='PMT Data')
+        ax[0].plot(time_channel,process_channels[0],label='PMT Data')
         ax[0].set_title('Raw')
         ax[0].legend()
 
-    processed_channel = process_data(process_channel,time_channel)
+    processed_channels = []
+    for i in process_channels : processed_channels.append(process_data(i,time_channel))
 
     
     
     if plot:
-        peak_finder(processed_channel, time_channel, inputfile, ax)
+        peak_finder(processed_channels[0], time_channel, inputfile, ax)
     else:
-        peak_finder(processed_channel, time_channel, inputfile)
+        peak_finder(processed_channels, time_channel, inputfile)
 
     ##Define Processed Plot
     if plot:
-        ax[1].plot(time_channel,processed_channel,label='PMT Data')
+        ax[1].plot(time_channel,processed_channels[0],label='PMT Data')
         ax[1].set_title('Processed')
         ax[1].legend()
 
@@ -219,28 +218,34 @@ def store_data_point(a,b): #Takes a file path and a list of data points, and app
     with open(a, 'a',newline='') as outputfile:
         csvwriter = csv.writer(outputfile)
         csvwriter.writerow(b)
+        print('written line with length: ' + str(len(b)))
         outputfile.close()
     print('Storing the data took ' + str(time.time() - datastoragestarttime) + ' seconds')
 
-def peak_finder(process_channel,time_channel, currentfile, ax = None):
+def peak_finder(process_channels,time_channel, currentfile, ax = None):
     peakfindingstarttime = time.time()
     peak_x = []
     peak_y = []
     
-
-    for i in range(1):
-        (peak_indices, *a) = signal.find_peaks(process_channel, minheight, threshold, distance, prominence + ((i)*0.001), width, wlen, rel_height, plateau_size)
+    for i in process_channels: 
+        (peak_indices, *a) = signal.find_peaks(i, minheight, threshold, distance, prominence + 0.001, width, wlen, rel_height, plateau_size)
     
         for j in range(len(peak_indices)):
             peak_x.append(time_channel[peak_indices[j]])
-            peak_y.append(process_channel[peak_indices[j]])
+            peak_y.append(i[peak_indices[j]])
     
         if plot:
             ax[i+1].scatter(peak_x,peak_y,color = "orange")
 
-    file_information = process_file_name(currentfile)
+        file_information = process_file_name(currentfile)
+        
+        print(len(peak_x))
+        print(len(peak_y))
 
-    store_data_point(outputdir, [datetime.datetime.now(), compile_peaks(peak_y),currentfile] + file_information)
+        store_data_point(outputdir, [datetime.datetime.now(), currentfile])
+        store_data_point(outputdir,peak_x)
+        store_data_point(outputdir,peak_y)
+    
     print('Finding the peaks took ' + str(time.time() - peakfindingstarttime) + ' seconds')
 
 def process_file_name(filename):
