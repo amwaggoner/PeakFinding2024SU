@@ -142,7 +142,7 @@ async def run_script(inputfile):
         fig, ax = plt.subplots(1,2,figsize=(9,5))
 
     time_channel = channels[0]
-    process_channels = channels[1:3]
+    process_channels = [channels[1]]
 
     ##Define Raw Data Subplot
     if plot:

@@ -12,6 +12,7 @@ def main():
     data = extractdata(peakdir,0)
     organizeddata = organizerawdata(data)
     
+    algorithm_1(organizeddata)
     algorithm_2(organizeddata)
     
     #plotdata(organizeddata[0][1],organizeddata[0][2])
@@ -78,18 +79,28 @@ def algorithm_1(inputs): #Takes an array of input arrays and produces an output 
         store_data_point(outputdir, ["algorithm 1"])
         heldvalue = 0.0
         for j in i[2]: 
+            try:
+                heldvalue += float(j)
+            except:
+                heldvalue += 0.0
             heldvalue += float(j)
-        store_data_point(outputdir,[heldvalue])
-
+            store_data_point(outputdir,[heldvalue])
+            
 def algorithm_2(inputs): #Takes an array of input arrays and produces an output based on the data provided. This algorithm takes the mean of the data points.
     for i in inputs:
         store_data_point(outputdir, i[0])
         store_data_point(outputdir, ["algorithm 2"])
         heldvalue = 0.0
         for j in i[2]: 
-            heldvalue += float(j)
+            try:
+                heldvalue += float(j)
+            except:
+                heldvalue += 0.0
         heldvalue /= len(i[2])
         store_data_point(outputdir,[heldvalue])
+
+def algorithm_3(inputs): #Takes an array of input arrays and produces an output based on the data provided. This algorithm 
+    
 
 if __name__ == "__main__":
     main()
