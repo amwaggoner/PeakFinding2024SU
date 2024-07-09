@@ -83,7 +83,6 @@ def algorithm_1(inputs): #Takes an array of input arrays and produces an output 
                 heldvalue += float(j)
             except:
                 heldvalue += 0.0
-            heldvalue += float(j)
             store_data_point(outputdir,[heldvalue])
             
 def algorithm_2(inputs): #Takes an array of input arrays and produces an output based on the data provided. This algorithm takes the mean of the data points.
@@ -100,7 +99,7 @@ def algorithm_2(inputs): #Takes an array of input arrays and produces an output 
         store_data_point(outputdir,[heldvalue])
 
 def algorithm_3(inputs): #Takes an array of input arrays and produces an output based on the data provided. This algorithm 
-    
+    print('None')
 
 if __name__ == "__main__":
     main()
