@@ -13,6 +13,7 @@ import logging
 import argparse
 import os
 import time
+
 '''
 
 Notes for the user:
@@ -30,7 +31,7 @@ exampledir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\peak_example.c
 minheight = None    #Default = None
 threshold = None    #Default = None
 distance = None     #Default = None
-prominence = 0.016   #Default = None
+prominence = 0.100  #Default = None
 width = None        #Default = None
 wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
@@ -155,9 +156,9 @@ def run_script(inputfile):
     
     
     if plot:
-        peak_finder(processed_channels, time_channel, inputfile, ax)
+        peak_finder(processed_channels, time_channel, inputfile, channels[3], ax)
     else:
-        peak_finder(processed_channels, time_channel, inputfile)
+        peak_finder(processed_channels, time_channel, inputfile, channels[3])
 
     ##Define Processed Plot
     if plot:
@@ -222,7 +223,7 @@ def store_data_point(a,b): #Takes a file path and a list of data points, and app
         outputfile.close()
     print('Storing the data took ' + str(time.time() - datastoragestarttime) + ' seconds')
 
-def peak_finder(process_channels,time_channel, currentfile, ax = None):
+def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax = None):
     peakfindingstarttime = time.time()
     
     for i in process_channels: 
@@ -236,15 +237,48 @@ def peak_finder(process_channels,time_channel, currentfile, ax = None):
             except:
                 print('ERROR: Found non-numerical value. Skipping')
         
+        splitinputs = [[],[],[]]
+        splittimes = [[],[],[]]
+        foundsignal = False
+        
+        for j in range(len(inputchannel)):
+            if toroid_channel[j] < 2:
+                if foundsignal:
+                    splitinputs[2].append(inputchannel[j])
+                    splittimes[2].append(time_channel_processed[j])
+                else:
+                    splitinputs[0].append(inputchannel[j])
+                    splittimes[0].append(time_channel_processed[j])
+            else:
+                splitinputs[1].append(inputchannel[j])
+                splittimes[1].append(time_channel_processed[j])
+                foundsignal = True
+                
+        print(len(splitinputs[0]))
+        print(len(splitinputs[1]))
+        print(len(splitinputs[2]))
+
 
         peak_x = []
         peak_y = []
-        (peak_indices, *a) = signal.find_peaks(inputchannel, minheight, threshold, distance, prominence + 0.1, width, wlen, rel_height, plateau_size)
+        
+        (peak_indices, *a) = signal.find_peaks(splitinputs[0], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
+        
+        (peak_indices2, *a) = signal.find_peaks(splitinputs[1], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
+        
+        (peak_indices3, *a) = signal.find_peaks(splitinputs[2], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
         
         for j in range(len(peak_indices)):
-            peak_x.append(time_channel_processed[peak_indices[j]])
-            peak_y.append(inputchannel[peak_indices[j]])
-    
+            peak_x.append(splittimes[0][peak_indices[j]])
+            peak_y.append(splitinputs[0][peak_indices[j]])
+            
+        for j in range(len(peak_indices2)):
+            peak_x.append(splittimes[1][peak_indices2[j]])
+            peak_y.append(splitinputs[1][peak_indices2[j]])
+            
+        for j in range(len(peak_indices3)):
+            peak_x.append(splittimes[2][peak_indices3[j]])
+            peak_y.append(splitinputs[2][peak_indices3[j]])
         
         if plot:
             ax[1].scatter(peak_x,peak_y,color = "orange")
@@ -280,6 +314,7 @@ def process_data(process_channel,time_channel):
     base = process_channel[0]
     for i in range(len(process_channel)-1):
         process_channel[i] -= base
+    process_channel = integration(process_channel,time_channel)
     process_channel = integration(process_channel,time_channel)
 
 
