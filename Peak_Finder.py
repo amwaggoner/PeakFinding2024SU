@@ -31,12 +31,12 @@ exampledir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\peak_example.c
 minheight = None    #Default = None
 threshold = None    #Default = None
 distance = None     #Default = None
-prominence = 0.100  #Default = None
-width = None        #Default = None
+prominence = 0.250  #Default = None
+width = 9.5           #Default = None
 wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
 plateau_size = None #Default = None
-plot = True         #Does this need to be plotted? Default = False
+plot = False         #Does this need to be plotted? Default = False
 
 FORMAT = '%(asctime)-15s [%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -162,7 +162,7 @@ def run_script(inputfile):
 
     ##Define Processed Plot
     if plot:
-        ax[1].plot(time_channel,processed_channels[0],label='PMT Data')
+        #ax[1].plot(time_channel,processed_channels[0],label='PMT Data')
         ax[1].set_title('Processed')
         ax[1].legend()
 
@@ -230,13 +230,14 @@ def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax =
         inputchannel = []
         time_channel_processed = []
         
+
         for j in range(len(i)):
             try:
                 inputchannel.append(float(i[j]))
                 time_channel_processed.append(float(time_channel[j]))
             except:
                 print('ERROR: Found non-numerical value. Skipping')
-        
+
         splitinputs = [[],[],[]]
         splittimes = [[],[],[]]
         foundsignal = False
@@ -254,39 +255,79 @@ def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax =
                 splittimes[1].append(time_channel_processed[j])
                 foundsignal = True
                 
-        print(len(splitinputs[0]))
-        print(len(splitinputs[1]))
-        print(len(splitinputs[2]))
+        for i in range(110000):
+            splitinputs[0][0-i-1] = 0.0
+        
+        for i in range(110000):
+            splitinputs[2][i] = 0.0
+        
+        '''print(len(splittimes[0]))
+        print(len(splittimes[1]))
+        print(len(splittimes[2]))
+        print(str(len(splittimes[0])+len(splittimes[1])+len(splittimes[2])))'''
 
+
+        '''for i in splittimes[2]:
+            if i < splittimes[1][-1]:
+                splittimes[2].remove(i)
+                splitinputs[2].remove(splitinputs[2][0])'''
 
         peak_x = []
         peak_y = []
         
+        prominence = 0.050
         (peak_indices, *a) = signal.find_peaks(splitinputs[0], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
         
+        prominence = 0.150
         (peak_indices2, *a) = signal.find_peaks(splitinputs[1], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
         
+        prominence = 0.050
         (peak_indices3, *a) = signal.find_peaks(splitinputs[2], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
         
+        peak_x_1 = []
+        peak_y_1 = []
+        peak_x_2 = []
+        peak_y_2 = []
+        peak_x_3 = []
+        peak_y_3 = []
+
         for j in range(len(peak_indices)):
-            peak_x.append(splittimes[0][peak_indices[j]])
-            peak_y.append(splitinputs[0][peak_indices[j]])
+            peak_x_1.append(splittimes[0][peak_indices[j]])
+            peak_y_1.append(splitinputs[0][peak_indices[j]])
             
         for j in range(len(peak_indices2)):
-            peak_x.append(splittimes[1][peak_indices2[j]])
-            peak_y.append(splitinputs[1][peak_indices2[j]])
+            peak_x_2.append(splittimes[1][peak_indices2[j]])
+            peak_y_2.append(splitinputs[1][peak_indices2[j]])
             
         for j in range(len(peak_indices3)):
-            peak_x.append(splittimes[2][peak_indices3[j]])
-            peak_y.append(splitinputs[2][peak_indices3[j]])
+            peak_x_3.append(splittimes[2][peak_indices3[j]])
+            peak_y_3.append(splitinputs[2][peak_indices3[j]])
+
+        for j in range(len(peak_x_1)):
+            peak_x.append(peak_x_1[j])
+            peak_y.append(peak_y_1[j])
+            
+        for j in range(len(peak_x_2)):
+            peak_x.append(peak_x_2[j])
+            peak_y.append(peak_y_2[j])
+            
+        for j in range(len(peak_x_3)):
+            peak_x.append(peak_x_3[j])
+            peak_y.append(peak_y_3[j])
+
         
         if plot:
-            ax[1].scatter(peak_x,peak_y,color = "orange")
+            ax[1].plot(splittimes[0], splitinputs[0], color = "purple")
+            ax[1].plot(splittimes[1], splitinputs[1], color = "pink")
+            ax[1].plot(splittimes[2], splitinputs[2], color = "yellow")
+            ax[1].scatter(peak_x_1,peak_y_1,color = "orange")
+            ax[1].scatter(peak_x_2,peak_y_2,color = "red")
+            ax[1].scatter(peak_x_3,peak_y_3,color = "green")
 
         file_information = process_file_name(currentfile)
         
-        print(len(peak_x))
-        print(len(peak_y))
+        '''print(len(peak_x))
+        print(len(peak_y))'''
 
         store_data_point(outputdir, [datetime.datetime.now(), currentfile])
         store_data_point(outputdir,peak_x)
