@@ -13,6 +13,7 @@ import logging
 import argparse
 import os
 import time
+
 '''
 
 Notes for the user:
@@ -30,8 +31,8 @@ exampledir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\peak_example.c
 minheight = None    #Default = None
 threshold = None    #Default = None
 distance = None     #Default = None
-prominence = 0.016   #Default = None
-width = None        #Default = None
+prominence = 0.250  #Default = None
+width = 9.5           #Default = None
 wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
 plateau_size = None #Default = None
@@ -63,15 +64,10 @@ async def main():
     datadir = r'\Users\waggoner\Desktop\Data_Folder'
     files = []
     tasks = []
+    
     for filename in os.listdir(datadir):
-        files.append(datadir + r'\%s'%filename)
+        run_script(datadir + r'\%s'%filename)
     
-    
-    
-    for i in files:
-        tasks.append(asyncio.create_task(run_script(i)))
-    
-    await asyncio.gather(*tasks)
 
     print('Entire script took ' + str(time.time() - starttime) + ' seconds to process ' + str(len(files)) + ' files')
     
@@ -130,7 +126,7 @@ def parse_args(args_dict):
     args_dict['dev_list'] = options.devlist
     args_dict['role']     = options.role
     
-async def run_script(inputfile):
+def run_script(inputfile):
     scriptstarttime = time.time()
 
     ##Extract Data
@@ -142,7 +138,7 @@ async def run_script(inputfile):
         fig, ax = plt.subplots(1,2,figsize=(9,5))
 
     time_channel = channels[0]
-    process_channels = channels[1:3]
+    process_channels = [channels[1],channels[2]]
 
     ##Define Raw Data Subplot
     if plot:
@@ -154,18 +150,19 @@ async def run_script(inputfile):
         ax[0].legend()
 
     processed_channels = []
-    for i in process_channels : processed_channels.append(process_data(i,time_channel))
+    for i in process_channels : 
+        processed_channels.append(process_data(i,time_channel))
 
     
     
     if plot:
-        peak_finder(processed_channels[0], time_channel, inputfile, ax)
+        peak_finder(processed_channels, time_channel, inputfile, channels[3], ax)
     else:
-        peak_finder(processed_channels, time_channel, inputfile)
+        peak_finder(processed_channels, time_channel, inputfile, channels[3])
 
     ##Define Processed Plot
     if plot:
-        ax[1].plot(time_channel,processed_channels[0],label='PMT Data')
+        #ax[1].plot(time_channel,processed_channels[0],label='PMT Data')
         ax[1].set_title('Processed')
         ax[1].legend()
 
@@ -185,7 +182,11 @@ def extract_data(inputfile,cutlines): #Takes a csv file, inputfile, and an int r
     for line in lines:
         cols = [j for j in line.split(',')]
         for i in range(len(cols)):
-            output[i].append(float(cols[i]))
+            try:
+                output[i].append(float(cols[i]))
+            except:
+                print('ERROR: Non-numerical value found while extracting data. Skipping')
+                output[i].append(None)
     
     print('Extracting the data took ' + str(time.time() - dataextractionstarttime) + ' seconds')
     return output
@@ -222,29 +223,128 @@ def store_data_point(a,b): #Takes a file path and a list of data points, and app
         outputfile.close()
     print('Storing the data took ' + str(time.time() - datastoragestarttime) + ' seconds')
 
-def peak_finder(process_channels,time_channel, currentfile, ax = None):
+def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax = None):
     peakfindingstarttime = time.time()
-    peak_x = []
-    peak_y = []
     
+    second_channel = False
     for i in process_channels: 
-        (peak_indices, *a) = signal.find_peaks(i, minheight, threshold, distance, prominence + 0.001, width, wlen, rel_height, plateau_size)
-    
+        inputchannel = []
+        time_channel_processed = []
+        
+
+        for j in range(len(i)):
+            try:
+                inputchannel.append(float(i[j]))
+                time_channel_processed.append(float(time_channel[j]))
+            except:
+                print('ERROR: Found non-numerical value. Skipping')
+
+        splitinputs = [[],[],[]]
+        splittimes = [[],[],[]]
+        foundsignal = False
+        
+        for j in range(len(inputchannel)):
+            if toroid_channel[j] < 2:
+                if foundsignal:
+                    splitinputs[2].append(inputchannel[j])
+                    splittimes[2].append(time_channel_processed[j])
+                else:
+                    splitinputs[0].append(inputchannel[j])
+                    splittimes[0].append(time_channel_processed[j])
+            else:
+                splitinputs[1].append(inputchannel[j])
+                splittimes[1].append(time_channel_processed[j])
+                foundsignal = True
+                
+        for i in range(110000):
+            splitinputs[0][0-i-1] = 0.0
+        
+        for i in range(110000):
+            splitinputs[2][i] = 0.0
+        
+        '''print(len(splittimes[0]))
+        print(len(splittimes[1]))
+        print(len(splittimes[2]))
+        print(str(len(splittimes[0])+len(splittimes[1])+len(splittimes[2])))'''
+
+
+        '''for i in splittimes[2]:
+            if i < splittimes[1][-1]:
+                splittimes[2].remove(i)
+                splitinputs[2].remove(splitinputs[2][0])'''
+
+        peak_x = []
+        peak_y = []
+        
+
+        if second_channel:
+            prominence = 0.010
+        else:
+            prominence = 0.050
+        (peak_indices, *a) = signal.find_peaks(splitinputs[0], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
+        
+        if second_channel:
+            prominence = 0.025
+        else:
+            prominence = 0.150
+        (peak_indices2, *a) = signal.find_peaks(splitinputs[1], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
+        
+        if second_channel:
+            prominence = 0.010
+        else:
+            prominence = 0.050
+        (peak_indices3, *a) = signal.find_peaks(splitinputs[2], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
+        
+        peak_x_1 = []
+        peak_y_1 = []
+        peak_x_2 = []
+        peak_y_2 = []
+        peak_x_3 = []
+        peak_y_3 = []
+
         for j in range(len(peak_indices)):
-            peak_x.append(time_channel[peak_indices[j]])
-            peak_y.append(i[peak_indices[j]])
-    
-        if plot:
-            ax[i+1].scatter(peak_x,peak_y,color = "orange")
+            peak_x_1.append(splittimes[0][peak_indices[j]])
+            peak_y_1.append(splitinputs[0][peak_indices[j]])
+            
+        for j in range(len(peak_indices2)):
+            peak_x_2.append(splittimes[1][peak_indices2[j]])
+            peak_y_2.append(splitinputs[1][peak_indices2[j]])
+            
+        for j in range(len(peak_indices3)):
+            peak_x_3.append(splittimes[2][peak_indices3[j]])
+            peak_y_3.append(splitinputs[2][peak_indices3[j]])
+
+        for j in range(len(peak_x_1)):
+            peak_x.append(peak_x_1[j])
+            peak_y.append(peak_y_1[j])
+            
+        for j in range(len(peak_x_2)):
+            peak_x.append(peak_x_2[j])
+            peak_y.append(peak_y_2[j])
+            
+        for j in range(len(peak_x_3)):
+            peak_x.append(peak_x_3[j])
+            peak_y.append(peak_y_3[j])
+
+        
+        if plot and second_channel:
+            ax[1].plot(splittimes[0], splitinputs[0], color = "purple")
+            ax[1].plot(splittimes[1], splitinputs[1], color = "pink")
+            ax[1].plot(splittimes[2], splitinputs[2], color = "yellow")
+            ax[1].scatter(peak_x_1,peak_y_1,color = "orange")
+            ax[1].scatter(peak_x_2,peak_y_2,color = "red")
+            ax[1].scatter(peak_x_3,peak_y_3,color = "green")
 
         file_information = process_file_name(currentfile)
         
-        print(len(peak_x))
-        print(len(peak_y))
+        '''print(len(peak_x))
+        print(len(peak_y))'''
 
         store_data_point(outputdir, [datetime.datetime.now(), currentfile])
         store_data_point(outputdir,peak_x)
         store_data_point(outputdir,peak_y)
+
+        second_channel = True
     
     print('Finding the peaks took ' + str(time.time() - peakfindingstarttime) + ' seconds')
 
@@ -263,11 +363,12 @@ def process_data(process_channel,time_channel):
     for i in range(len(process_channel)):
         if abs(process_channel[i]) > raw_max:
             raw_max = abs(process_channel[i])
+            
     ##Process Data    
-    
     base = process_channel[0]
     for i in range(len(process_channel)-1):
         process_channel[i] -= base
+    process_channel = integration(process_channel,time_channel)
     process_channel = integration(process_channel,time_channel)
 
 
@@ -276,6 +377,7 @@ def process_data(process_channel,time_channel):
         if abs(process_channel[i]) > processed_max:
             processed_max = abs(process_channel[i])
     scale_factor = 1 / processed_max
+    
     if scale_factor == float('NaN'):
         print('There is an infinity in this data set')
     for i in range(len(process_channel)):
