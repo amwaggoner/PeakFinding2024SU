@@ -3,6 +3,7 @@ import io
 import matplotlib.pyplot as plt
 import aiostream
 import asyncio
+import math
 
 
 peakdir = r'\Users\waggoner\Documents\GitHub\PeakFinding2024SU\outputdata.csv'
@@ -12,8 +13,9 @@ def main():
     data = extractdata(peakdir,0)
     organizeddata = organizerawdata(data)
     
-    algorithm_1(organizeddata)
-    algorithm_2(organizeddata)
+    #algorithm_1(organizeddata)
+    #algorithm_2(organizeddata)
+    algorithm_3(organizeddata)
     
     #plotdata(organizeddata[0][1],organizeddata[0][2])
     #print(organizeddata[0][1])
@@ -83,7 +85,7 @@ def algorithm_1(inputs): #Takes an array of input arrays and produces an output 
                 heldvalue += float(j)
             except:
                 heldvalue += 0.0
-            store_data_point(outputdir,[heldvalue])
+        store_data_point(outputdir,[heldvalue])
             
 def algorithm_2(inputs): #Takes an array of input arrays and produces an output based on the data provided. This algorithm takes the mean of the data points.
     for i in inputs:
@@ -98,8 +100,43 @@ def algorithm_2(inputs): #Takes an array of input arrays and produces an output 
         heldvalue /= len(i[2])
         store_data_point(outputdir,[heldvalue])
 
-def algorithm_3(inputs): #Takes an array of input arrays and produces an output based on the data provided. This algorithm 
-    print('None')
+def algorithm_3(inputs): #Takes an array of input arrays and produces an output based on the data provided. This algorithm normalizes the peaks then takes the mean of the values.
+    
+    for i in inputs:
+        held1 = []
+        held2 = 0
+        held3 = 0
+        for j in i[2]:
+            try:
+                held1.append(math.exp(float(j)))
+                held2 += math.exp(float(j))
+            except:
+                print("Not a number, skipping")
+    
+        for j in held1:
+            j /= held2
+            held3 += j
+
+        #print(held3)
+
+        normalizedinputs = held1
+
+        try:
+            test = 1 /len(normalizedinputs)
+            store_data_point(outputdir, i[0])
+            store_data_point(outputdir, ["algorithm 3"])
+            heldvalue = 0.0
+            for j in normalizedinputs: 
+                try:
+                    heldvalue += float(j)
+                except:
+                    heldvalue += 0.0
+            heldvalue /= len(normalizedinputs)
+            store_data_point(outputdir,[heldvalue])
+        except:
+            store_data_point(outputdir, i[0])
+            store_data_point(outputdir, ["algorithm 3"])
+            store_data_point(outputdir, [0.0])
 
 if __name__ == "__main__":
     main()

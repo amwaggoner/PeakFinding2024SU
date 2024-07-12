@@ -226,6 +226,7 @@ def store_data_point(a,b): #Takes a file path and a list of data points, and app
 def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax = None):
     peakfindingstarttime = time.time()
     
+    second_channel = False
     for i in process_channels: 
         inputchannel = []
         time_channel_processed = []
@@ -275,13 +276,23 @@ def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax =
         peak_x = []
         peak_y = []
         
-        prominence = 0.050
+
+        if second_channel:
+            prominence = 0.010
+        else:
+            prominence = 0.050
         (peak_indices, *a) = signal.find_peaks(splitinputs[0], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
         
-        prominence = 0.150
+        if second_channel:
+            prominence = 0.025
+        else:
+            prominence = 0.150
         (peak_indices2, *a) = signal.find_peaks(splitinputs[1], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
         
-        prominence = 0.050
+        if second_channel:
+            prominence = 0.010
+        else:
+            prominence = 0.050
         (peak_indices3, *a) = signal.find_peaks(splitinputs[2], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
         
         peak_x_1 = []
@@ -316,7 +327,7 @@ def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax =
             peak_y.append(peak_y_3[j])
 
         
-        if plot:
+        if plot and second_channel:
             ax[1].plot(splittimes[0], splitinputs[0], color = "purple")
             ax[1].plot(splittimes[1], splitinputs[1], color = "pink")
             ax[1].plot(splittimes[2], splitinputs[2], color = "yellow")
@@ -332,6 +343,8 @@ def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax =
         store_data_point(outputdir, [datetime.datetime.now(), currentfile])
         store_data_point(outputdir,peak_x)
         store_data_point(outputdir,peak_y)
+
+        second_channel = True
     
     print('Finding the peaks took ' + str(time.time() - peakfindingstarttime) + ' seconds')
 
