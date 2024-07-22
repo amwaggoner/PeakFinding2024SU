@@ -13,8 +13,8 @@ def main():
     data = extractdata(peakdir,0)
     organizeddata = organizerawdata(data)
     
-    #algorithm_1(organizeddata)
-    #algorithm_2(organizeddata)
+    algorithm_1(organizeddata)
+    algorithm_2(organizeddata)
     algorithm_3(organizeddata)
     
     #plotdata(organizeddata[0][1],organizeddata[0][2])

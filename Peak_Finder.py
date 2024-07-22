@@ -32,11 +32,11 @@ minheight = None    #Default = None
 threshold = None    #Default = None
 distance = None     #Default = None
 prominence = 0.250  #Default = None
-width = 9.5           #Default = None
+width = 0           #Default = None
 wlen = None         #Default = None
 rel_height = 0.5    #Default = 0.5
 plateau_size = None #Default = None
-plot = False         #Does this need to be plotted? Default = False
+plot = False        #Does this need to be plotted? Default = False
 
 FORMAT = '%(asctime)-15s [%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -197,12 +197,21 @@ def integration(a, time_channel):
 
     integrationstarttime = time.time()
     out = np.empty((1,0)).tolist()
+    if a[0] == a[1] and a[1] == a[2]:
+        print('input is weird')
+
     for i in range(len(a)):
         if i == 0:
             out[i] = 0.0
         else: 
-            out.append(float(0.5*(time_channel[i]-time_channel[i-1])*(a[i-1]*a[i])))
-    print('Applying the 2 term convolution took ' + str(time.time() - integrationstarttime) + ' seconds')
+            try:
+                in1 = float(a[i-1])
+                in2 = float(a[i])
+                out.append(float(0.5*(time_channel[i]-time_channel[i-1])*(in1*in2)))
+            except:
+                out.append(out[i-1])
+                print("non-float found")
+    print('Applying the noise removal operation took ' + str(time.time() - integrationstarttime) + ' seconds')
     return out
 
 def compile_peaks(a): #Takes a list of peak heights and returns a float that represents the loss
@@ -244,7 +253,7 @@ def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax =
         foundsignal = False
         
         for j in range(len(inputchannel)):
-            if toroid_channel[j] < 2:
+            if toroid_channel[j] < 0.2:
                 if foundsignal:
                     splitinputs[2].append(inputchannel[j])
                     splittimes[2].append(time_channel_processed[j])
@@ -256,10 +265,13 @@ def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax =
                 splittimes[1].append(time_channel_processed[j])
                 foundsignal = True
                 
-        for i in range(110000):
+        '''for i in range(110000):
             splitinputs[0][0-i-1] = 0.0
         
         for i in range(110000):
+            splitinputs[2][i] = 0.0'''
+
+        for i in range(4500):
             splitinputs[2][i] = 0.0
         
         '''print(len(splittimes[0]))
@@ -278,21 +290,21 @@ def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax =
         
 
         if second_channel:
-            prominence = 0.010
+            prominence = 0.200
         else:
-            prominence = 0.050
+            prominence = 0.200
         (peak_indices, *a) = signal.find_peaks(splitinputs[0], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
         
         if second_channel:
-            prominence = 0.025
+            prominence = 0.200
         else:
-            prominence = 0.150
+            prominence = 0.200
         (peak_indices2, *a) = signal.find_peaks(splitinputs[1], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
         
         if second_channel:
-            prominence = 0.010
+            prominence = 0.200
         else:
-            prominence = 0.050
+            prominence = 0.200
         (peak_indices3, *a) = signal.find_peaks(splitinputs[2], minheight, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
         
         peak_x_1 = []
@@ -327,7 +339,8 @@ def peak_finder(process_channels,time_channel, currentfile, toroid_channel, ax =
             peak_y.append(peak_y_3[j])
 
         
-        if plot and second_channel:
+        if plot and second_channel: 
+            '''and len(peak_x) < 2'''
             ax[1].plot(splittimes[0], splitinputs[0], color = "purple")
             ax[1].plot(splittimes[1], splitinputs[1], color = "pink")
             ax[1].plot(splittimes[2], splitinputs[2], color = "yellow")
@@ -369,7 +382,7 @@ def process_data(process_channel,time_channel):
     for i in range(len(process_channel)-1):
         process_channel[i] -= base
     process_channel = integration(process_channel,time_channel)
-    process_channel = integration(process_channel,time_channel)
+    #process_channel = integration(process_channel,time_channel)
 
 
     processed_max = 0
